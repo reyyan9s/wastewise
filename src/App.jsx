@@ -14,9 +14,9 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background font-sans">
+    <div className="h-screen w-screen flex flex-col overflow-hidden font-sans">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 mt-14 relative overflow-hidden">
+      <main className="absolute inset-0 z-0">
         {activeTab === 'map' && <MapView focusedCenter={focusedCenter} onClearFocus={() => setFocusedCenter(null)} />}
         {activeTab === 'report' && <ReportForm />}
         {activeTab === 'ewaste' && <EwasteChat onViewMap={handleViewMap} />}

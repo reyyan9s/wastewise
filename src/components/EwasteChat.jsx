@@ -18,6 +18,33 @@ const KEYWORD_MAP = {
   wearable: ['wearables'], watch: ['wearables'], projector: ['projectors'],
 };
 
+const ITEM_INFO = {
+  laptops:       { tip: 'Remove and separately recycle the battery before drop-off. Wipe data with a factory reset.', impact: '🌍 One laptop contains up to 60 toxic metals including lead & mercury — recycling prevents soil contamination.' },
+  phones:        { tip: 'Back up your data, perform a factory reset, and remove the SIM card before drop-off.', impact: '🌍 A single phone can contain gold, silver & cobalt. Recycling 1 million phones recovers ~16 kg of gold.' },
+  tablets:       { tip: 'Reset to factory settings and remove any cases or accessories before recycling.', impact: '🌍 Tablets contain rare earth elements — mining them destroys ecosystems. Recycling reduces that demand.' },
+  tvs:           { tip: 'Do not break the screen — CRT TVs contain lead-laced glass. Transport upright.', impact: '🌍 Old CRT TVs contain 1–4 kg of lead each. Improper disposal contaminates groundwater for decades.' },
+  monitors:      { tip: 'LCD monitors contain mercury backlights — handle with care and never landfill.', impact: '🌍 Mercury from one monitor can contaminate 100,000 litres of water if improperly disposed.' },
+  batteries:     { tip: 'Never throw in regular bins. Store separately in a cool, dry place before drop-off.', impact: '🌍 Lithium batteries can cause landfill fires. Proper recycling recovers lithium, cobalt & nickel.' },
+  printers:      { tip: 'Remove ink cartridges (recycle separately) and clear any paper jams before drop-off.', impact: '🌍 Printer cartridges take 450–1000 years to decompose. Recycling saves ~3.5 oz of oil per cartridge.' },
+  chargers:      { tip: 'Coil cables neatly and include all adapters. Most centers accept chargers for free.', impact: '🌍 Cable insulation contains PVC — burning it releases dioxins. Always recycle, never incinerate.' },
+  refrigerators: { tip: 'Ensure certified e-waste handlers retrieve refrigerants — DIY removal is illegal & dangerous.', impact: '🌍 Old fridges use HFC refrigerants with a global warming potential 1,430× worse than CO₂.' },
+  wearables:     { tip: 'Remove silicone bands (general waste) and recycle only the electronic module.', impact: '🌍 Smartwatch batteries are non-removable — the entire unit must be recycled to prevent leakage.' },
+  desktops:      { tip: 'Separate hard drives containing personal data and destroy or wipe them before drop-off.', impact: '🌍 A desktop PC contains ~2 kg of plastic and multiple heavy metals including cadmium and beryllium.' },
+  screens:       { tip: 'Transport in original packaging if possible to prevent screen breakage.', impact: '🌍 Broken screens release microplastics and rare-earth phosphors that persist in the environment.' },
+  projectors:    { tip: 'Projector lamps contain mercury — always recycle through certified handlers.', impact: '🌍 Projector lamps are hazardous waste. Certified recyclers safely neutralize the mercury content.' },
+};
+
+function getItemInfo(query) {
+  const lower = query.toLowerCase();
+  for (const [keyword, tags] of Object.entries(KEYWORD_MAP)) {
+    if (lower.includes(keyword)) {
+      const tag = tags[0];
+      if (ITEM_INFO[tag]) return ITEM_INFO[tag];
+    }
+  }
+  return null;
+}
+
 function findCenters(query) {
   const lower = query.toLowerCase();
   const matchTags = new Set();
@@ -55,6 +82,7 @@ export default function EwasteChat({ onViewMap }) {
 
     setTimeout(() => {
       const results = findCenters(q);
+      const info = getItemInfo(q);
       setMessages((prev) => [
         ...prev,
         {
@@ -63,6 +91,7 @@ export default function EwasteChat({ onViewMap }) {
             ? `Found ${results.length} center${results.length > 1 ? 's' : ''} that accept "${q}":`
             : `No specific match for "${q}". Here are all available centers:`,
           centers: results.length > 0 ? results : CENTERS,
+          info,
         },
       ]);
       setLoading(false);
@@ -136,6 +165,25 @@ export default function EwasteChat({ onViewMap }) {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {msg.info && (
+                  <div className="mt-4 space-y-2">
+                    <div className="bg-blue-50/80 rounded-xl p-3 border border-blue-100 flex gap-2.5">
+                      <span className="text-base shrink-0 mt-0.5">💡</span>
+                      <div>
+                        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-1">Disposal Tip</p>
+                        <p className="text-xs text-blue-900 leading-relaxed">{msg.info.tip}</p>
+                      </div>
+                    </div>
+                    <div className="bg-emerald-50/80 rounded-xl p-3 border border-emerald-100 flex gap-2.5">
+                      <span className="text-base shrink-0 mt-0.5">🌱</span>
+                      <div>
+                        <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Environmental Impact</p>
+                        <p className="text-xs text-emerald-900 leading-relaxed">{msg.info.impact}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
