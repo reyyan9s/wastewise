@@ -1,6 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
 @import "tailwindcss";
 
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 @theme {
   --color-primary: #1D9E75;
   --color-primary-light: #24c08e;

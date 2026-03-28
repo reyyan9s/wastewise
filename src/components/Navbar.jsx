@@ -1,15 +1,25 @@
 import BlurText from './BlurText';
-import { Map, FileEdit, Recycle, Shield } from 'lucide-react';
+import { Map, FileEdit, Recycle, Shield, List, LogOut } from 'lucide-react';
 
-const tabs = [
-  { id: 'map',    label: 'Route Map',      icon: <Map size={16} className="text-[#1D9E75]" /> },
-  { id: 'report', label: 'Report Waste',   icon: <FileEdit size={16} className="text-[#1D9E75]" /> },
-  { id: 'ewaste', label: 'E-waste Finder', icon: <Recycle size={16} className="text-[#1D9E75]" /> },
-];
+const getTabs = (isAdmin) => {
+  const base = [
+    { id: 'map',    label: 'Route Map',      icon: <Map size={16} className="text-[#1D9E75]" /> },
+    { id: 'report', label: 'Report Waste',   icon: <FileEdit size={16} className="text-[#1D9E75]" /> },
+    { id: 'myReports', label: 'My Reports',  icon: <List size={16} className="text-[#1D9E75]" /> },
+    { id: 'ewaste', label: 'E-waste Finder', icon: <Recycle size={16} className="text-[#1D9E75]" /> },
+  ];
+  if (isAdmin) {
+    return [
+      { id: 'admin', label: 'Admin Dashboard', icon: <Shield size={16} className="text-amber-500" /> },
+      { id: 'map',   label: 'Route Map',       icon: <Map size={16} className="text-[#1D9E75]" /> }
+    ];
+  }
+  return base;
+};
 
-export default function Navbar({ activeTab, onTabChange, isAdmin, onToggleAdmin }) {
+export default function Navbar({ activeTab, onTabChange, isAdmin, user, onLogout }) {
   return (
-    <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[2000] w-[95%] max-w-[900px] liquid-glass rounded-full transition-all duration-500 pointer-events-auto font-sans">
+    <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[2000] w-[95%] max-w-[1100px] liquid-glass rounded-full transition-all duration-500 pointer-events-auto font-sans">
       <div className="px-4 py-3 sm:px-6 sm:py-3.5">
         <div className="flex items-center justify-between gap-3">
           <div
@@ -25,48 +35,61 @@ export default function Navbar({ activeTab, onTabChange, isAdmin, onToggleAdmin 
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Main tabs — hidden in admin mode */}
-            {!isAdmin && (
-              <div className="flex items-center gap-1.5 bg-black/20 p-1 rounded-full shadow-inner ring-1 ring-white/5">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => onTabChange(tab.id)}
-                    className={`relative px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 cursor-pointer overflow-hidden
-                      ${activeTab === tab.id
-                        ? 'text-white bg-white/10 shadow-lg ring-1 ring-white/20 scale-[1.02]'
-                        : 'text-white/60 hover:text-white/90 hover:bg-white/5'
-                      }`}
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <span className="hidden sm:inline text-lg drop-shadow-sm">{tab.icon}</span>
-                      {tab.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center gap-1.5 bg-black/20 p-1 rounded-full shadow-inner ring-1 ring-white/5 overflow-x-auto scrollbar-hide">
+              {getTabs(isAdmin).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`relative px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 cursor-pointer overflow-hidden
+                    ${activeTab === tab.id
+                      ? (isAdmin && tab.id === 'admin' ? 'text-black bg-amber-500 shadow-lg scale-[1.02]' : 'text-white bg-white/10 shadow-lg ring-1 ring-white/20 scale-[1.02]')
+                      : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+                    }`}
+                >
+                  <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
+                    <span className="hidden sm:inline text-lg drop-shadow-sm">{tab.icon}</span>
+                    {tab.label}
+                  </span>
+                </button>
+              ))}
+            </div>
 
             {isAdmin && (
-              <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 ring-1 ring-amber-500/40 text-amber-400 text-[13px] font-bold tracking-wider">
-                <Shield size={14} />
-                BMC Admin
+              <span className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 ring-1 ring-amber-500/40 text-amber-400 text-[13px] font-bold tracking-wider whitespace-nowrap">
+                <Shield size={14} className="shrink-0" />
+                BMC Context
               </span>
             )}
 
-            {/* User / Admin toggle */}
-            <button
-              onClick={onToggleAdmin}
-              title={isAdmin ? 'Switch to User view' : 'Switch to Admin view'}
-              className={`flex items-center gap-2 px-3 py-2 rounded-full text-[12px] font-bold tracking-wider transition-all duration-300 cursor-pointer ring-1
-                ${isAdmin
-                  ? 'bg-amber-500/20 ring-amber-500/50 text-amber-300 hover:bg-amber-500/30'
-                  : 'bg-black/30 ring-white/10 text-white/50 hover:text-white hover:ring-white/30'
-                }`}
-            >
-              <Shield size={13} />
-              {isAdmin ? 'User View' : 'Admin'}
-            </button>
+            {!isAdmin && user && (
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 ring-1 ring-white/10 mr-1 shrink-0">
+                <div className="w-5 h-5 rounded-full bg-[#1D9E75]/20 flex items-center justify-center text-[#1D9E75] text-[10px] uppercase font-bold shrink-0">
+                  {user.email.charAt(0)}
+                </div>
+                <span className="text-[11px] text-white/50 truncate max-w-[140px]">{user.email}</span>
+              </div>
+            )}
+
+            {!isAdmin && user && (
+              <button
+                onClick={onLogout}
+                title="Log Out"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/5 text-white/40 hover:text-red-400 hover:bg-red-400/10 ring-1 ring-white/10 hover:ring-red-400/30 transition-all duration-300"
+              >
+                <LogOut size={13} />
+              </button>
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={onLogout}
+                title="Exit Admin Panel"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-full text-[12px] font-bold tracking-wider transition-all duration-300 cursor-pointer ring-1 whitespace-nowrap bg-amber-500/20 ring-amber-500/50 text-amber-300 hover:bg-amber-500/30 ml-2"
+              >
+                <LogOut size={13} />
+                Exit
+              </button>
+            )}
           </div>
         </div>
       </div>

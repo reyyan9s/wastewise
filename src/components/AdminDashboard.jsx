@@ -189,7 +189,15 @@ export default function AdminDashboard({ reports, onStatusChange }) {
                           </span>
                         </td>
                         <td>
-                          {r.status !== 'collected' && (
+                          {r.status === 'pending' && (
+                            <button
+                              onClick={() => onStatusChange([r.id], 'assigned')}
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20 hover:bg-orange-500/20 transition-colors cursor-pointer whitespace-nowrap"
+                            >
+                              Assign Truck
+                            </button>
+                          )}
+                          {r.status === 'assigned' && (
                             <button
                               onClick={() => markCollected(r.id)}
                               className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer whitespace-nowrap"
@@ -198,7 +206,7 @@ export default function AdminDashboard({ reports, onStatusChange }) {
                             </button>
                           )}
                           {r.status === 'collected' && (
-                            <span className="text-[11px] text-emerald-500/60">Done</span>
+                            <span className="text-[11px] text-emerald-500/60 font-bold whitespace-nowrap">✓ Done</span>
                           )}
                         </td>
                       </tr>

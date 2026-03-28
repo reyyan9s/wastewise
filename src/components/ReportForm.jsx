@@ -20,7 +20,7 @@ const LEVELS = [
 
 const EMPTY = { location: '', ward: '', level: '', notes: '' };
 
-export default function ReportForm() {
+export default function ReportForm({ user }) {
   const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(false);
@@ -59,6 +59,8 @@ export default function ReportForm() {
       createdAt: new Date(),
       lat,
       lng,
+      userId: user?.uid,
+      userEmail: user?.email,
     };
 
     addLocalReport(report);
@@ -75,6 +77,8 @@ export default function ReportForm() {
         createdAt: serverTimestamp(),
         lat,
         lng,
+        userId: user?.uid,
+        userEmail: user?.email,
       });
     } catch {}
   };
