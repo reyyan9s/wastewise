@@ -112,3 +112,69 @@
   50% { transform: translateY(-3px); }
   100% { transform: translateY(0px); }
 }
+
+/* ── Multi-Route Polyline Styles ── */
+.route-path-blue path {
+  stroke-dasharray: 16, 16 !important;
+  animation: dash-flow 1.2s linear infinite;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+.route-path-purple path {
+  stroke-dasharray: 12, 12 !important;
+  animation: dash-flow 1s linear infinite;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* ── Status Badge Styles ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.status-pending { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.status-assigned { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.status-collected { background: rgba(29,158,117,0.15); color: #1D9E75; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
+
+/* ── Admin Dashboard ── */
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.admin-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.4);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.admin-table td {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.admin-table tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { MapPin, CheckCircle, Ruler, Fuel, Zap, Radio, AlertCircle, Building2 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { onLocalReportsChange } from '../reportStore';
+import { onLocalReportsChange, TRUCK_TYPES } from '../reportStore';
+import { FALLBACK_IDS, enrichReport } from '../reportData';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -48,16 +50,16 @@ function createEwasteIcon() {
   });
 }
 
-function createTruckIcon() {
+function createTruckIcon(color = '#1D9E75', truckLabel = 'TRUCK 1') {
   return L.divIcon({
     html: `<div style="position:relative">
-      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#147a59);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(29,158,117,0.5);border:3px solid #fff">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${color},${color}cc);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px ${color}80;border:3px solid #fff">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
         </svg>
       </div>
-      <div style="position:absolute;top:-6px;left:-6px;width:60px;height:60px;border-radius:50%;border:3px solid #1D9E75;opacity:0.4;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite"></div>
-      <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:#1D9E75;color:white;font-size:9px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;letter-spacing:0.05em;box-shadow:0 2px 8px rgba(0,0,0,0.2)">START</div>
+      <div style="position:absolute;top:-6px;left:-6px;width:60px;height:60px;border-radius:50%;border:3px solid ${color};opacity:0.4;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite"></div>
+      <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:${color};color:white;font-size:9px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;letter-spacing:0.05em;box-shadow:0 2px 8px rgba(0,0,0,0.2)">${truckLabel}</div>
     </div>`,
     className: 'custom-marker',
     iconSize: [48, 48],
@@ -130,6 +132,35 @@ function optimizeRoute(reports) {
   }
 
   return route;
+}
+
+// ── Multi-Truck Route Splitter (Tasks 2, 3, 6) ──────────────────────────────
+const ROUTE_COLORS = ['#1D9E75', '#3B82F6', '#A855F7', '#F97316'];
+function splitIntoTruckRoutes(reports) {
+  const valid = reports.filter(r => r.lat && r.lng);
+  if (valid.length === 0) return [];
+  const sorted = [...valid].sort((a, b) => getPriority(a.level) - getPriority(b.level));
+  const bins = [];
+  for (const report of sorted) {
+    const density = report.density || ((report.level === 'critical' || report.level === 'high') ? 'high' : 'low');
+    const tType = density === 'high' ? 'large' : 'small';
+    const cap = TRUCK_TYPES[tType].capacity;
+    const vol = report.wasteVolume || 100;
+    let bin = bins.find(b => b.truckType === tType && b.totalVolume + vol <= b.capacity);
+    if (!bin) { bin = { truckType: tType, capacity: cap, reports: [], totalVolume: 0 }; bins.push(bin); }
+    bin.reports.push(report);
+    bin.totalVolume += vol;
+  }
+  return bins.map((bin, i) => ({
+    truckType: bin.truckType,
+    label: TRUCK_TYPES[bin.truckType].label,
+    color: ROUTE_COLORS[i % ROUTE_COLORS.length],
+    routeCoords: optimizeRoute(bin.reports),
+    reportIds: bin.reports.map(r => r.id),
+    totalVolume: bin.totalVolume,
+    capacity: bin.capacity,
+    stopsCount: bin.reports.length,
+  }));
 }
 
 // Simulation: random Mumbai-area waste reports
@@ -227,11 +258,11 @@ function HowItWorksModal({ onClose }) {
         </div>
         <div className="space-y-5">
           {[
-            { icon: '📡', title: 'Real-Time Reports', desc: 'Firebase Firestore instantly pushes new waste updates into the map view.' },
-            { icon: '🔴', title: 'Priority Classification', desc: 'Critical zones are dynamically forced to the top of the queue.' },
-            { icon: '📍', title: 'Nearest-Neighbor Routing', desc: 'Once clustered by priority, the engine calculates the tightest optimal path.' },
-            { icon: '📏', title: 'Metrics Tracking', desc: 'Haversine distance logic automatically calculates active distance & fuel drops.' },
-            { icon: '🏙️', title: 'Live Simulation', desc: 'Engage "Simulate City" to watch random events disrupt the planning grid.' },
+            { icon: <Radio size={24} />, title: 'Real-Time Reports', desc: 'Firebase Firestore instantly pushes new waste updates into the map view.' },
+            { icon: <AlertCircle size={24} />, title: 'Priority Classification', desc: 'Critical zones are dynamically forced to the top of the queue.' },
+            { icon: <MapPin size={24} />, title: 'Nearest-Neighbor Routing', desc: 'Once clustered by priority, the engine calculates the tightest optimal path.' },
+            { icon: <Ruler size={24} />, title: 'Metrics Tracking', desc: 'Haversine distance logic automatically calculates active distance & fuel drops.' },
+            { icon: <Building2 size={24} />, title: 'Live Simulation', desc: 'Engage "Simulate City" to watch random events disrupt the planning grid.' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="flex gap-4 group">
               <span className="text-2xl shrink-0 mt-0.5 group-hover:scale-110 transition-transform">{icon}</span>
@@ -247,9 +278,9 @@ function HowItWorksModal({ onClose }) {
   );
 }
 
-export default function MapView({ focusedCenter, onClearFocus }) {
-  const [reports, setReports] = useState(FALLBACK_REPORTS);
+export default function MapView({ reports, onAddReports, onStatusChange, focusedCenter, onClearFocus }) {
   const [routeCoords, setRouteCoords] = useState([]);
+  const [truckRoutes, setTruckRoutes] = useState([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimized, setOptimized] = useState(false);
   const [newPoint, setNewPoint] = useState(null);
@@ -269,19 +300,21 @@ export default function MapView({ focusedCenter, onClearFocus }) {
     'Finalizing optimal route...'
   ];
 
+  const reportsRef = useRef(reports);
+  useEffect(() => { reportsRef.current = reports; }, [reports]);
+
   useEffect(() => {
     return onLocalReportsChange((localReports) => {
-      setReports((prev) => {
-        const existingIds = new Set(prev.map((r) => r.id));
-        const brandNew = localReports.filter((r) => !existingIds.has(r.id));
-        if (brandNew.length === 0) return prev;
-        const latest = brandNew[brandNew.length - 1];
-        setNewPoint(latest);
-        setTimeout(() => setNewPoint(null), 4000);
-        return [...prev, ...brandNew];
-      });
+      const existingIds = new Set(reportsRef.current.map(r => r.id));
+      const brandNew = localReports.filter(r => !existingIds.has(r.id)).map(enrichReport);
+      if (brandNew.length === 0) return;
+      onAddReports(brandNew);
+      const latest = brandNew[brandNew.length - 1];
+      setNewPoint(latest);
+      setTimeout(() => setNewPoint(null), 4000);
+      setRouteOutdated(true);
     });
-  }, []);
+  }, [onAddReports]);
 
   useEffect(() => {
     let unsubscribe;
@@ -289,28 +322,21 @@ export default function MapView({ focusedCenter, onClearFocus }) {
       unsubscribe = onSnapshot(
         collection(db, 'waste_reports'),
         (snapshot) => {
-          const live = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-          setReports((prev) => {
-            const fallbackIds = new Set(FALLBACK_REPORTS.map(r => r.id));
-            const prevLiveIds = new Set(prev.filter(r => !fallbackIds.has(r.id)).map(r => r.id));
-            const brandNew = live.filter(r => !fallbackIds.has(r.id) && !prevLiveIds.has(r.id));
-            if (brandNew.length > 0) {
-              const latest = brandNew[brandNew.length - 1];
-              if (latest.lat && latest.lng) {
-                setNewPoint(latest);
-                setTimeout(() => setNewPoint(null), 4000);
-              }
-            }
-            return [...FALLBACK_REPORTS, ...prev.filter(r => !fallbackIds.has(r.id)), ...brandNew];
-          });
+          const live = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const brandNew = live
+            .filter(r => !FALLBACK_IDS.has(r.id) && !reportsRef.current.find(p => p.id === r.id))
+            .map(enrichReport);
+          if (brandNew.length > 0) {
+            onAddReports(brandNew);
+            const latest = brandNew[brandNew.length - 1];
+            if (latest.lat && latest.lng) { setNewPoint(latest); setTimeout(() => setNewPoint(null), 4000); }
+          }
         },
-        (error) => console.error("Snapshot error:", error)
+        (error) => console.error('Snapshot error:', error)
       );
-    } catch (e) {
-      console.error("Firebase subscription failed:", e);
-    }
+    } catch (e) { console.error('Firebase subscription failed:', e); }
     return () => unsubscribe?.();
-  }, []);
+  }, [onAddReports]);
 
   // Task 4 — simulation ticker (setInterval, single interval only)
   const simCounterRef = useRef(0);
@@ -322,13 +348,11 @@ export default function MapView({ focusedCenter, onClearFocus }) {
     if (simRef.current) clearInterval(simRef.current);
 
     const generateReport = () => {
-      // Hardcoded center as requested by TASK 3
       const baseLat = 19.1136;
       const baseLng = 72.8697;
-      
       const level = SIM_LEVELS[Math.floor(Math.random() * SIM_LEVELS.length)];
       const id = `sim-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const report = {
+      const report = enrichReport({
         id,
         location: 'Simulated Hotspot',
         ward: 'K-East',
@@ -337,8 +361,8 @@ export default function MapView({ focusedCenter, onClearFocus }) {
         lat: baseLat + (Math.random() - 0.5) * 0.015,
         lng: baseLng + (Math.random() - 0.5) * 0.015,
         createdAt: new Date(),
-      };
-      setReports((prev) => [...prev, report]);
+      });
+      onAddReports([report]);
       setSimPoints((prev) => [...prev, id]);
       setNewPoint(report);
       setTimeout(() => setNewPoint(null), 3500);
@@ -357,7 +381,7 @@ export default function MapView({ focusedCenter, onClearFocus }) {
         simRef.current = null;
       }
     };
-  }, [simulating]);
+  }, [simulating, onAddReports]);
 
   // Task 2 — real dynamic stats
   const stats = useMemo(() => {
@@ -398,13 +422,18 @@ export default function MapView({ focusedCenter, onClearFocus }) {
 
     setTimeout(() => {
       clearInterval(interval);
-      setRouteCoords(optimizeRoute(reports));
+      const routes = splitIntoTruckRoutes(reports);
+      setTruckRoutes(routes);
+      setRouteCoords(routes[0]?.routeCoords || []);
+      // Mark all routed reports as assigned
+      const allIds = routes.flatMap(r => r.reportIds);
+      onStatusChange(allIds, 'assigned');
       setOptimized(true);
       setIsOptimizing(false);
       setOptimizeStep(0);
       setNewPoint(null);
     }, 2500);
-  }, [reports]);
+  }, [reports, onStatusChange]);
 
   const counts = useMemo(() => ({
     critical: reports.filter(r => r.level === 'critical').length,
@@ -430,14 +459,19 @@ export default function MapView({ focusedCenter, onClearFocus }) {
           return (
             <Marker key={r.id} position={[r.lat, r.lng]} icon={createColoredIcon(LEVEL_COLORS[r.level] || LEVEL_COLORS.normal, pulse)}>
               <Popup>
-                <div className="text-sm min-w-[180px]">
+                <div className="text-sm min-w-[190px]">
                   <p className="font-semibold">{r.location}</p>
                   <p className="text-gray-500 text-xs mt-0.5">Ward: {r.ward}</p>
-                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white
-                    ${r.level === 'critical' ? 'bg-red-500' : r.level === 'high' ? 'bg-amber-500' : 'bg-emerald-600'}`}>
-                    {r.level.toUpperCase()}
-                  </span>
-                  {pulse && <span className="ml-2 text-xs text-orange-500 font-semibold">🔴 LIVE</span>}
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold text-white ${ r.level === 'critical' ? 'bg-red-500' : r.level === 'high' ? 'bg-amber-500' : 'bg-emerald-600'}`}>
+                      {r.level?.toUpperCase()}
+                    </span>
+                    <span className={`status-badge ${ r.status === 'collected' ? 'status-collected' : r.status === 'assigned' ? 'status-assigned' : 'status-pending'}`}>
+                      {r.status || 'pending'}
+                    </span>
+                    {pulse && <span className="text-xs text-orange-500 font-semibold">🔴 LIVE</span>}
+                  </div>
+                  <p className="text-gray-400 text-[10px] mt-1.5">Density: <b>{r.density || 'low'}</b> · {r.wasteVolume || '—'} kg · {r.density === 'high' ? '🚛 Large Truck' : '🚐 Mini Truck'}</p>
                   {r.notes && <p className="text-xs text-gray-500 mt-1">{r.notes}</p>}
                 </div>
               </Popup>
@@ -445,23 +479,35 @@ export default function MapView({ focusedCenter, onClearFocus }) {
           );
         })}
 
-        {/* Optimised route — custom styled flow path */}
-        {routeCoords.length > 1 && (
+        {/* Multi-truck routes — colored polylines */}
+        {optimized && truckRoutes.map((route, i) => (
+          route.routeCoords.length > 1 && (
+            <Polyline
+              key={`route-${i}`}
+              positions={route.routeCoords}
+              pathOptions={{ color: route.color, weight: 5, className: i === 0 ? 'route-path' : i === 1 ? 'route-path-blue' : 'route-path-purple' }}
+            />
+          )
+        ))}
+        {/* Fallback single route when no multi-route */}
+        {!optimized && routeCoords.length > 1 && (
           <Polyline positions={routeCoords} pathOptions={{ color: '#1D9E75', weight: 5, className: 'route-path' }} />
         )}
 
-        {/* Truck start marker */}
-        {optimized && routeCoords.length > 0 && (
-          <Marker position={routeCoords[0]} icon={createTruckIcon()} zIndexOffset={2000}>
-            <Popup>
-              <div className="text-sm min-w-[160px]">
-                <p className="font-bold text-[#1D9E75] text-base">🚛 Route Start</p>
-                <p className="text-gray-500 text-xs mt-1">Collection begins here</p>
-                <p className="text-gray-400 text-[10px] mt-1">First stop: Critical priority</p>
-              </div>
-            </Popup>
-          </Marker>
-        )}
+        {/* Truck start markers — one per route */}
+        {optimized && truckRoutes.map((route, i) => (
+          route.routeCoords.length > 0 && (
+            <Marker key={`truck-${i}`} position={route.routeCoords[0]} icon={createTruckIcon(route.color, `T${i + 1}`)} zIndexOffset={2000 + i}>
+              <Popup>
+                <div className="text-sm min-w-[170px]">
+                  <p className="font-bold text-base" style={{ color: route.color }}>🚛 {route.label}</p>
+                  <p className="text-gray-500 text-xs mt-1">{route.stopsCount} stops · {route.totalVolume} kg load</p>
+                  <p className="text-gray-400 text-[10px] mt-1">Capacity: {route.capacity} kg · Route {i + 1}</p>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        ))}
 
         {focusedCenter && focusedCenter.lat && focusedCenter.lng && (
           <>
@@ -501,17 +547,26 @@ export default function MapView({ focusedCenter, onClearFocus }) {
 
       {/* ── Task 5 — Efficiency Score Bar (top center) ── */}
       <motion.div initial={{ y: -20, opacity: 0, filter: 'blur(10px)' }} whileInView={{ y: 0, opacity: 1, filter: 'blur(0px)' }} viewport={{ once: true, margin: '-50px' }} className="absolute top-28 left-1/2 -translate-x-1/2 z-[999] pointer-events-none" style={{ marginTop: focusedCenter ? '76px' : '0' }}>
-        <div className="liquid-glass rounded-2xl px-6 py-3 flex items-center gap-4 min-w-[280px] pointer-events-auto">
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] whitespace-nowrap">Efficiency Score</span>
-          <div className="flex-1 h-2 bg-black/40 shadow-inner rounded-full overflow-hidden ring-1 ring-white/5">
+        <div className="liquid-glass rounded-full px-5 py-3 flex items-center gap-4 w-min whitespace-nowrap pointer-events-auto shadow-lg shadow-black/20">
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] shrink-0">Efficiency Score</span>
+          <div className="w-[120px] h-2 bg-black/40 shadow-inner rounded-full overflow-hidden ring-1 ring-white/5 shrink-0">
             <div
               className="h-full bg-gradient-to-r from-[#F59E0B] via-[#1D9E75] to-[#059669] rounded-full transition-all duration-1000"
               style={{ width: `${optimized ? stats.efficiencyScore : stats.baseScore}%` }}
             />
           </div>
-          <span className="text-xl font-display italic font-bold text-[#1D9E75] whitespace-nowrap tabular-nums drop-shadow-sm">
-            {optimized ? `${stats.baseScore} → ${stats.efficiencyScore}` : `${stats.baseScore}`}
-          </span>
+          
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-2xl font-display italic font-bold text-[#1D9E75] tabular-nums drop-shadow-sm leading-none pt-1">
+              {optimized ? `${stats.baseScore} \u2192 ${stats.efficiencyScore}` : `${stats.baseScore}`}
+            </span>
+            <div className="flex items-center">
+              {(optimized ? stats.efficiencyScore : stats.baseScore) < 60 && <span className="bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest leading-none">Attention</span>}
+              {(optimized ? stats.efficiencyScore : stats.baseScore) >= 60 && (optimized ? stats.efficiencyScore : stats.baseScore) <= 80 && <span className="bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest leading-none">Good</span>}
+              {(optimized ? stats.efficiencyScore : stats.baseScore) > 80 && <span className="bg-green-400/20 text-green-400 ring-1 ring-green-400/40 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest leading-none animate-pulse shadow-[0_0_10px_rgba(74,222,128,0.2)]">Optimal</span>}
+            </div>
+          </div>
+
           <button
             onClick={() => setShowModal(true)}
             className="w-6 h-6 rounded-full bg-white/10 hover:bg-[#1D9E75]/20 text-white/60 hover:text-white text-[10px] font-bold flex items-center justify-center shrink-0 transition-colors cursor-pointer ring-1 ring-white/5"
@@ -553,9 +608,12 @@ export default function MapView({ focusedCenter, onClearFocus }) {
             {reports.filter(r => r.level === 'critical').map(r => (
               <div key={r.id} className="bg-black/20 shadow-inner rounded-2xl p-3.5 ring-1 ring-red-500/20 flex gap-3 group transition-all duration-300 hover:bg-white/10 hover:shadow-lg hover:ring-red-500/40 cursor-pointer">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 mt-1 shrink-0 shadow-[0_0_10px_rgba(239,68,68,0.6)] group-hover:scale-125 transition-transform" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold text-white/90 truncate">{r.location}</p>
-                  <p className="text-[10px] text-white/50 mt-1 line-clamp-2 leading-relaxed">{r.notes}</p>
+                  <p className="text-[10px] text-white/50 mt-0.5 line-clamp-1 leading-relaxed">{r.notes}</p>
+                  <span className={`status-badge mt-1 inline-flex ${ r.status === 'collected' ? 'status-collected' : r.status === 'assigned' ? 'status-assigned' : 'status-pending'}`}>
+                    {r.status || 'pending'}
+                  </span>
                 </div>
               </div>
             ))}
@@ -601,7 +659,7 @@ export default function MapView({ focusedCenter, onClearFocus }) {
               </div>
               <div className="flex items-center gap-3 text-xs text-white/80">
                 <span className="w-5 h-5 rounded-full bg-[#1D9E75]/20 ring-1 ring-[#1D9E75]/30 flex items-center justify-center text-[10px] drop-shadow-sm">📏</span>
-                <span className="leading-snug"><b>{stats.improvement}%</b> distance reduction achieved</span>
+                <span className="leading-snug">{stats.distanceBefore.toFixed(1)} km → {stats.distanceAfter.toFixed(1)} km ({stats.improvement}% saved)</span>
               </div>
             </div>
           </div>
@@ -637,12 +695,12 @@ export default function MapView({ focusedCenter, onClearFocus }) {
 
             {/* Stats */}
             <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-6 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide px-2">
-              <StatItem label="Total Stops" value={`${stats.beforeStops}`} icon="📍" />
+              <StatItem label="Total Stops" value={`${stats.beforeStops}`} icon={<MapPin size={18} />} />
               <Divider />
               <StatItem
                 label="Optimized"
                 value={optimized ? `${stats.afterStops} stops` : `${stats.beforeStops} stops`}
-                icon="✅"
+                icon={<CheckCircle size={18} />}
                 highlight
                 max={stats.beforeStops}
                 current={optimized ? (stats.beforeStops - stats.afterStops) : 0}
@@ -651,7 +709,7 @@ export default function MapView({ focusedCenter, onClearFocus }) {
               <StatItem
                 label="Distance Saved"
                 value={optimized ? `${stats.distanceSaved.toFixed(1)} km` : `0.0 km`}
-                icon="📏"
+                icon={<Ruler size={18} />}
                 highlight
                 max={stats.distanceBefore > 0 ? stats.distanceBefore * 0.5 : 10}
                 current={optimized ? stats.distanceSaved : 0}
@@ -660,7 +718,7 @@ export default function MapView({ focusedCenter, onClearFocus }) {
               <StatItem
                 label="Fuel Saved"
                 value={optimized ? `${stats.fuelSaved.toFixed(1)} L` : `0.0 L`}
-                icon="⛽"
+                icon={<Fuel size={18} />}
                 highlight
                 max={stats.distanceBefore > 0 ? (stats.distanceBefore * 0.2) * 0.5 : 5}
                 current={optimized ? stats.fuelSaved : 0}
@@ -669,7 +727,7 @@ export default function MapView({ focusedCenter, onClearFocus }) {
               <StatItem
                 label="Efficiency"
                 value={optimized ? `+${stats.improvement}%` : `+0%`}
-                icon="🚀"
+                icon={<Zap size={18} />}
                 highlight
                 max={100}
                 current={optimized ? stats.improvement : 0}
@@ -688,7 +746,7 @@ export default function MapView({ focusedCenter, onClearFocus }) {
                   }`}
               >
                 <span className={`w-2 h-2 rounded-full ${simulating ? 'bg-orange-500 animate-pulse' : 'bg-gray-300'}`} />
-                {simulating ? 'Simulating…' : 'Simulate City'}
+                {simulating ? `Live · ${simPoints.length} new reports` : 'Simulate City'}
               </button>
 
               {/* Optimize button */}

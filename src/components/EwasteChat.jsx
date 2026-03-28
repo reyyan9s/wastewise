@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Bot, Recycle, MapPin, Package, Clock, Lightbulb, Leaf } from 'lucide-react';
 
 const CENTERS = [
   { id: 1, name: 'EcoRecycle Hub',           area: 'Andheri West',   lat: 19.1365, lng: 72.8312, accepted: ['laptops', 'desktops', 'peripherals', 'printers'],                          hours: 'Mon–Sat 9 AM – 6 PM' },
@@ -106,15 +107,22 @@ export default function EwasteChat({ onViewMap }) {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-background via-white to-[#1D9E75]/5 flex flex-col relative overflow-hidden">
-      <div className="px-6 py-5 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm z-10 w-full">
+    <div className="w-full h-full bg-[#0a0f0a] flex flex-col relative overflow-hidden pt-36">
+      {/* ── Background Thematic Elements ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-80">
+        <img src="/wastewise-bg-topo.png" alt="" className="w-full h-full object-cover saturate-[1.1] opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0a] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] mix-blend-overlay opacity-30" />
+      </div>
+
+      <div className="px-6 py-5 liquid-glass-strong border-b border-white/10 shadow-sm z-10 w-full">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1D9E75] to-[#147a59] flex items-center justify-center shadow-lg shadow-[#1D9E75]/20">
-            <span className="text-2xl">♻️</span>
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1D9E75] to-[#147a59] flex items-center justify-center shadow-lg shadow-[#1D9E75]/20 shrink-0">
+            <Recycle size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-text font-display tracking-tight">E-Waste Finder</h1>
-            <p className="text-[13px] text-text-muted mt-0.5 font-medium">Search for nearby e-waste recycling centers in Mumbai</p>
+            <h1 className="text-xl font-bold text-white font-display tracking-tight">E-Waste Finder</h1>
+            <p className="text-[13px] text-white/50 mt-0.5 font-medium">Search for nearby e-waste recycling centers in Mumbai</p>
           </div>
         </div>
       </div>
@@ -125,43 +133,43 @@ export default function EwasteChat({ onViewMap }) {
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
               {msg.role === 'assistant' && (
                 <div className="w-8 h-8 rounded-full bg-[#1D9E75]/10 flex items-center justify-center mr-3 mt-1 shrink-0">
-                  <span className="text-sm">🤖</span>
+                  <Bot size={16} className="text-[#1D9E75]" />
                 </div>
               )}
 
               <div className={`max-w-[85%] rounded-[20px] px-5 py-3.5 text-[15px] leading-relaxed shadow-sm transition-all
                 ${msg.role === 'user'
                   ? 'bg-gradient-to-br from-[#1D9E75] to-[#147a59] text-white rounded-br-sm shadow-md'
-                  : 'bg-white/90 backdrop-blur-md border border-white/60 text-gray-800 rounded-tl-sm'
+                  : 'liquid-glass text-white rounded-tl-sm'
                 }`}>
-                <p className={msg.role === 'user' ? 'text-white' : 'text-gray-800 font-medium'}>{msg.text}</p>
+                <p className={msg.role === 'user' ? 'text-white' : 'text-white/90 font-medium'}>{msg.text}</p>
 
                 {msg.centers && (
                   <div className="mt-4 space-y-3">
                     {msg.centers.map((c) => (
-                      <div key={c.id} className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all">
+                      <div key={c.id} className="bg-white/5 rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-all">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="font-bold text-gray-900 text-[15px] font-display">{c.name}</p>
-                            <p className="text-xs text-gray-500 mt-1 font-medium flex items-center gap-1">
-                              📍 <span>{c.area}</span>
+                            <p className="font-bold text-white text-[15px] font-display">{c.name}</p>
+                            <p className="text-xs text-white/50 mt-1.5 font-medium flex items-center gap-1.5">
+                              <MapPin size={12} className="text-[#1D9E75]" /> <span>{c.area}</span>
                             </p>
                           </div>
                           <button
                             onClick={() => onViewMap?.(c)}
-                            className="text-[11px] bg-[#1D9E75]/10 text-[#1D9E75] hover:bg-[#1D9E75] hover:text-white px-2.5 py-1 rounded-full font-bold shrink-0 transition-colors cursor-pointer"
+                            className="text-[11px] bg-[#1D9E75]/20 text-[#1D9E75] hover:bg-[#1D9E75] hover:text-white px-2.5 py-1 rounded-full font-bold shrink-0 transition-colors cursor-pointer"
                           >
                             View Map
                           </button>
                         </div>
-                        <div className="mt-3 bg-white rounded-xl p-2.5 shadow-sm border border-gray-100">
-                          <p className="text-[12px] text-gray-600 font-medium">
-                            <span className="text-gray-400 mr-1">📦 Accepts:</span>
-                            {c.accepted.map(a => <span key={a} className="inline-block bg-gray-100 px-2 py-0.5 rounded-md mr-1 mb-1">{a}</span>)}
-                          </p>
-                          <p className="text-[12px] text-gray-600 mt-1.5 font-medium flex items-center gap-1.5">
-                            <span className="text-gray-400">🕐</span> {c.hours}
-                          </p>
+                        <div className="mt-3 bg-white/5 rounded-xl p-2.5 shadow-sm border border-white/5">
+                          <div className="text-[12px] text-white/70 font-medium flex items-start sm:items-center flex-wrap gap-1.5">
+                            <span className="text-white/40 mr-1 flex items-center gap-1.5 shrink-0"><Package size={14} /> Accepts:</span>
+                            {c.accepted.map(a => <span key={a} className="inline-block bg-white/10 px-2 py-0.5 rounded-md mb-1">{a}</span>)}
+                          </div>
+                          <div className="text-[12px] text-white/70 mt-2 font-medium flex items-center gap-1.5">
+                            <Clock size={14} className="text-white/40" /> <span>{c.hours}</span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -170,18 +178,18 @@ export default function EwasteChat({ onViewMap }) {
 
                 {msg.info && (
                   <div className="mt-4 space-y-2">
-                    <div className="bg-blue-50/80 rounded-xl p-3 border border-blue-100 flex gap-2.5">
-                      <span className="text-base shrink-0 mt-0.5">💡</span>
+                    <div className="bg-blue-900/20 rounded-xl p-3 border border-blue-500/20 flex gap-3 items-start">
+                      <Lightbulb size={16} className="text-blue-400 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-1">Disposal Tip</p>
-                        <p className="text-xs text-blue-900 leading-relaxed">{msg.info.tip}</p>
+                        <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-1">Disposal Tip</p>
+                        <p className="text-xs text-blue-200 leading-relaxed">{msg.info.tip}</p>
                       </div>
                     </div>
-                    <div className="bg-emerald-50/80 rounded-xl p-3 border border-emerald-100 flex gap-2.5">
-                      <span className="text-base shrink-0 mt-0.5">🌱</span>
+                    <div className="bg-emerald-900/20 rounded-xl p-3 border border-emerald-500/20 flex gap-3 items-start">
+                      <Leaf size={16} className="text-emerald-400 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Environmental Impact</p>
-                        <p className="text-xs text-emerald-900 leading-relaxed">{msg.info.impact}</p>
+                        <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Environmental Impact</p>
+                        <p className="text-xs text-emerald-200 leading-relaxed">{msg.info.impact}</p>
                       </div>
                     </div>
                   </div>
@@ -194,7 +202,7 @@ export default function EwasteChat({ onViewMap }) {
                         key={opt}
                         onClick={() => handleSend(opt)}
                         disabled={loading}
-                        className="text-[13px] font-semibold bg-white/60 text-[#1D9E75] border border-[#1D9E75]/30 hover:bg-[#1D9E75] hover:text-white px-3.5 py-1.5 rounded-full transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="text-[13px] font-semibold bg-white/10 text-white/90 border border-white/20 hover:bg-[#1D9E75] hover:text-white px-3.5 py-1.5 rounded-full transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-[#1D9E75] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {opt}
                       </button>
@@ -208,9 +216,9 @@ export default function EwasteChat({ onViewMap }) {
           {loading && (
             <div className="flex justify-start animate-fade-in">
               <div className="w-8 h-8 rounded-full bg-[#1D9E75]/10 flex items-center justify-center mr-3 mt-1 shrink-0">
-                <span className="text-sm">🤖</span>
+                <Bot size={16} className="text-[#1D9E75]" />
               </div>
-              <div className="bg-white/90 backdrop-blur-md border border-white/60 text-gray-800 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
+              <div className="liquid-glass text-white rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-[#1D9E75]/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
                   <span className="w-2 h-2 bg-[#1D9E75]/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -224,7 +232,7 @@ export default function EwasteChat({ onViewMap }) {
         </div>
       </div>
 
-      <div className="px-4 py-5 bg-white/70 backdrop-blur-xl border-t border-white/50 z-10 w-full relative">
+      <div className="px-4 py-5 liquid-glass-strong border-t border-white/10 z-10 w-full relative">
         <div className="max-w-2xl mx-auto flex items-center gap-3 relative">
           <input
             type="text"

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { addLocalReport } from '../reportStore';
+import { CheckCircle, Recycle } from 'lucide-react';
 
 const WARDS = [
   { name: 'K-West (Andheri West)',  lat: 19.1360, lng: 72.8296 },
@@ -79,26 +80,32 @@ export default function ReportForm() {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-background via-white to-[#1D9E75]/5 overflow-y-auto relative flex flex-col pt-8 pb-12">
+    <div className="w-full h-full bg-[#0a0f0a] overflow-y-auto relative flex flex-col pt-36 pb-12">
+      {/* ── Background Thematic Elements ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-80">
+        <img src="/wastewise-bg-topo.png" alt="" className="w-full h-full object-cover saturate-[1.1] opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0a] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] mix-blend-overlay opacity-30" />
+      </div>
       {toast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-glass border border-[#1D9E75]/20 px-6 py-4 flex items-center gap-4 whitespace-nowrap">
-            <span className="text-2xl drop-shadow-sm">✅</span>
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] animate-slide-down">
+          <div className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-4 whitespace-nowrap">
+            <CheckCircle className="text-[#1D9E75]" size={24} />
             <div>
               <p className="text-[15px] font-bold text-[#1D9E75] font-display">Report submitted</p>
-              <p className="text-xs text-text-muted font-medium mt-0.5">Switch to Route Map to see the new marker.</p>
+              <p className="text-xs text-white/70 font-medium mt-0.5">Switch to Route Map to see the new marker.</p>
             </div>
             <button
               onClick={() => setToast(false)}
-              className="ml-3 text-text-muted/60 hover:text-text text-xl leading-none cursor-pointer transition-colors"
+              className="ml-3 text-white/50 hover:text-white text-xl leading-none cursor-pointer transition-colors"
             >×</button>
           </div>
         </div>
       )}
 
-      <div className="max-w-[32rem] w-full mx-auto px-6 sm:px-10 py-10 bg-white/70 backdrop-blur-2xl shadow-glass border border-white/60 rounded-[2rem]">
-        <h1 className="text-3xl font-bold text-text font-display tracking-tight">Report Waste</h1>
-        <p className="text-[15px] text-text-muted mt-2 mb-8 leading-relaxed">
+      <div className="max-w-[32rem] w-full mx-auto px-6 sm:px-10 py-10 liquid-glass-strong rounded-[2rem] relative z-10 shadow-2xl shadow-black/40">
+        <h1 className="text-3xl font-bold text-white font-display tracking-tight">Report Waste</h1>
+        <p className="text-[15px] text-white/50 mt-2 mb-8 leading-relaxed">
           Help keep Mumbai clean — report waste for faster collection.
         </p>
 
@@ -111,7 +118,7 @@ export default function ReportForm() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-text mb-2 tracking-wide text-gray-700">Location Name</label>
+            <label className="block text-sm font-semibold text-white/90 mb-2 tracking-wide">Location Name</label>
             <input
               type="text"
               placeholder="e.g. Near Lokhandwala Circle"
@@ -122,7 +129,7 @@ export default function ReportForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text mb-2 tracking-wide text-gray-700">Ward</label>
+            <label className="block text-sm font-semibold text-white/90 mb-2 tracking-wide">Ward</label>
             <div className="relative">
               <select
                 value={form.ward}
@@ -141,7 +148,7 @@ export default function ReportForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text mb-3 tracking-wide text-gray-700">Fill Level</label>
+            <label className="block text-sm font-semibold text-white/90 mb-3 tracking-wide">Fill Level</label>
             <div className="flex gap-3">
               {LEVELS.map((lvl) => {
                 const active = form.level === lvl.id;
@@ -152,8 +159,8 @@ export default function ReportForm() {
                     onClick={() => set('level', lvl.id)}
                     className={`flex-1 py-3.5 rounded-xl text-[13px] sm:text-sm font-bold border transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5
                       ${active
-                        ? `${lvl.color} text-white border-transparent shadow-lg shadow-${lvl.color.replace('bg-', '')}/30 ${lvl.ring}`
-                        : 'bg-white/60 text-gray-500 border-gray-200 hover:bg-white hover:shadow-sm hover:border-gray-300'
+                        ? `${lvl.color} text-white border-transparent shadow-[0_0_15px_rgba(dropdown,0.4)] ${lvl.ring}`
+                        : 'bg-white/10 text-white/70 border-white/20 hover:bg-white/20 hover:border-white/30'
                       }`}
                   >
                     <span className="mb-1 block text-lg sm:inline sm:mb-0 sm:mr-1.5">{lvl.emoji}</span> {lvl.label}
@@ -164,8 +171,8 @@ export default function ReportForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-text mb-2 tracking-wide text-gray-700">
-              Notes <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+            <label className="block text-sm font-semibold text-white/90 mb-2 tracking-wide">
+              Notes <span className="text-white/40 font-normal ml-1">(Optional)</span>
             </label>
             <textarea
               placeholder="Describe the issue... (e.g. blocking the road)"
